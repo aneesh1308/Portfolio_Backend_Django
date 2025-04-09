@@ -1,13 +1,13 @@
 {
     "builds": [{
-      "src": "test_project/wsgi.py",
+      "src": "backend/wsgi.py",
       "use": "@vercel/python",
       "config": { "runtime": "python3.10.2" }
     }],
     "routes": [
       {
         "src": "/(.*)",
-        "dest": "test_project/wsgi.py"
+        "dest": "backend/wsgi.py"
       }
     ]
 }
