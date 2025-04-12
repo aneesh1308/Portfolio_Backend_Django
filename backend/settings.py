@@ -155,7 +155,6 @@ USE_TZ = True
 
 # STATIC_URL = 'static/'
 
-DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 CLOUDINARY_STORAGE = {
     'CLOUD_NAME': config('CLOUDINARY_CLOUD_NAME'),
     'API_KEY': config('CLOUDINARY_API_KEY'),
@@ -163,7 +162,8 @@ CLOUDINARY_STORAGE = {
 }
 
 
-# MEDIA_URL = "/media/"
+MEDIA_URL = "/media/"
+DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 # MEDIA_ROOT = os.path.join(BASE_DIR, "public/uploads")
 
 # Default primary key field type
