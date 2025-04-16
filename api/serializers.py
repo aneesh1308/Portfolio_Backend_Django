@@ -1,7 +1,11 @@
 import json
+import os
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 from .models import Resume, Experience, Certification, Education, TechSkill, SoftSkill, Hobby, SliderGallery, Blog, BlogBlock
+import cloudinary.api
+from cloudinary.exceptions import NotFound
+from cloudinary.uploader import upload as cloudinary_upload, destroy as cloudinary_destroy
 # from .models import Note
 
 User = get_user_model()
@@ -13,14 +17,17 @@ class UserSerializer(serializers.ModelSerializer):
         extra_kwargs = {"password": {"write_only": True}}
 
     def create(self, validated_data):
-        is_staff = validated_data.get("is_staff", False)
-        if is_staff and User.objects.filter(is_staff=True).exists():
-            raise serializers.ValidationError("Only one admin user is allowed.")
         user = User.objects.create_user(**validated_data)
         print(f'{user} user created')
+        
         if user.is_staff:
-            Resume.objects.create(user=user, email=user.email)
+            print("creating resume")
+            try:
+                Resume.objects.create(user=user, email=user.email)
+            except Exception as e:
+                print(f"Resume creation failed: {e}")
         return user
+
 
 class ExperienceSerializer(serializers.ModelSerializer):
     class Meta:
@@ -60,12 +67,15 @@ class SliderGallerySerializer(serializers.ModelSerializer):
         fields = ("image",)
 
     def get_image(self, obj):
-        print(f"Image Path: {obj.image.path if obj.image else None}")
-        print(f"Image URL: {obj.image.url if obj.image else None}")
-        request = self.context.get("request")
-        if obj.image and request:
-            return request.build_absolute_uri(obj.image.url)
-        return obj.image.url if obj.image else None
+        try:
+            request = self.context.get("request")
+            if obj.image and request:
+                return request.build_absolute_uri(obj.image.url)
+            return obj.image.url if obj.image else None
+        except Exception as e:
+            print(f"Error in get_image: {e}")
+            return None
+
 
 class ResumeSerializer(serializers.ModelSerializer):
     profile_image = serializers.ImageField(use_url=True, required=False)
@@ -114,78 +124,109 @@ class ResumeSerializer(serializers.ModelSerializer):
             Hobby.objects.create(resume=resume, **hobby_data)
 
         for gallery_item in slider_gallery_files:
-            SliderGallery.objects.create(resume=resume, **gallery_item)
+            SliderGallery.objects.create(resume=resume, image=gallery_item)
+
       
         return resume
 
     def update(self, instance, validated_data):
-        # Update nested data
-        request = self.context['request']
-        experiences_data = json.loads(request.data.get('experiences', '[]'))
-        certifications_data = json.loads(request.data.get('certifications', '[]'))
-        education_data = json.loads(request.data.get('education', '[]'))
-        tech_skills_data = json.loads(request.data.get('tech_skills', '[]'))
-        soft_skills_data = json.loads(request.data.get('soft_skills', '[]'))
-        hobbies_data = json.loads(request.data.get('hobbies', '[]'))
+        try:
+            request = self.context['request']
+            profile_image = validated_data.get('profile_image', None)
 
-        slider_gallery_urls = request.data.getlist('slider_gallery_urls', '[]') # URLs from frontend
-        slider_gallery_files = request.FILES.getlist('slider_gallery') 
+            if profile_image:
+            # Delete old Cloudinary image only if it exists
+                if instance.profile_image:
+                    old_image_name = instance.profile_image.name
+                    if old_image_name:
+                        public_id = os.path.splitext(old_image_name)[0]
+                        print(f"Deleting Cloudinary image: {public_id}")
+                        try:
+                            cloudinary.api.resource(public_id)
+                            print(f"Resource exists. Deleting Cloudinary image: {public_id}")
+                            cloudinary_destroy(public_id)
+                        except NotFound:
+                            print(f"Cloudinary image {public_id} not found, skipping delete.")
+                        except Exception as e:
+                            print(f"Unexpected error while deleting Cloudinary image: {e}")
 
 
-        # Update Resume fields
-        for attr, value in validated_data.items():
-            setattr(instance, attr, value)
-        instance.save()
+                # Set new image
+                instance.profile_image = profile_image
 
-        # Update related models
-        instance.experiences.all().delete()
-        for exp_data in experiences_data:
-            Experience.objects.create(resume=instance, **exp_data)
+            # Update other fields
+            for attr, value in validated_data.items():
+                if attr != 'profile_image':
+                    setattr(instance, attr, value)
 
-        instance.certifications.all().delete()
-        for cert_data in certifications_data:
-            Certification.objects.create(resume=instance, **cert_data)
+            instance.save()
 
-        instance.education.all().delete()
-        for edu_data in education_data:
-            Education.objects.create(resume=instance, **edu_data)
+            experiences_data = json.loads(request.data.get('experiences', '[]'))
+            certifications_data = json.loads(request.data.get('certifications', '[]'))
+            education_data = json.loads(request.data.get('education', '[]'))
+            tech_skills_data = json.loads(request.data.get('tech_skills', '[]'))
+            soft_skills_data = json.loads(request.data.get('soft_skills', '[]'))
+            hobbies_data = json.loads(request.data.get('hobbies', '[]'))
 
-        instance.tech_skills.all().delete()
-        for skill_data in tech_skills_data:
-            TechSkill.objects.create(resume=instance, **skill_data)
+            slider_gallery_urls = request.data.getlist('slider_gallery_urls') or []
+            slider_gallery_files = request.FILES.getlist('slider_gallery') 
 
-        instance.soft_skills.all().delete()
-        for skill_data in soft_skills_data:
-            SoftSkill.objects.create(resume=instance, **skill_data)
+            # Clear & re-create related models
+            instance.experiences.all().delete()
+            for exp_data in experiences_data:
+                Experience.objects.create(resume=instance, **exp_data)
 
-        instance.hobbies.all().delete()
-        for hobby_data in hobbies_data:
-            Hobby.objects.create(resume=instance, **hobby_data)
+            instance.certifications.all().delete()
+            for cert_data in certifications_data:
+                Certification.objects.create(resume=instance, **cert_data)
 
-        if not slider_gallery_urls:
-            print("slider_gallery_urls is empty or not a list.")
-        else:
-            print("Slider Gallery URLs:", slider_gallery_urls)
+            instance.education.all().delete()
+            for edu_data in education_data:
+                Education.objects.create(resume=instance, **edu_data)
 
-        existing_urls = set(url.split('/')[-1] for url in slider_gallery_urls if isinstance(url, str))
+            instance.tech_skills.all().delete()
+            for skill_data in tech_skills_data:
+                TechSkill.objects.create(resume=instance, **skill_data)
 
-        for slider in instance.gallery.all():
-            db_filename = slider.image.name.split('/')[-1]
-            print(f"Checking: {db_filename}")
-            if db_filename not in existing_urls:
-                print(f"Deleting: {slider.image.name}")
-                slider.delete()
+            instance.soft_skills.all().delete()
+            for skill_data in soft_skills_data:
+                SoftSkill.objects.create(resume=instance, **skill_data)
 
-        for file in slider_gallery_files:
-            print(f"Uploading: {file.name}")
-            instance.gallery.create(image=file)
+            instance.hobbies.all().delete()
+            for hobby_data in hobbies_data:
+                Hobby.objects.create(resume=instance, **hobby_data)
 
-        return super().update(instance, validated_data)
+            # Slider gallery logic
+            existing_filenames = set(url.split('/')[-1] for url in slider_gallery_urls if isinstance(url, str))
+
+            for slider in instance.gallery.all():
+                db_filename = slider.image.name.split('/')[-1]
+                if db_filename not in existing_filenames:
+                    # Delete from Cloudinary
+                    public_id = f"resume_gallery/{os.path.splitext(db_filename)[0]}"
+                    try:
+                        print(f"Deleting Cloudinary slider image: {public_id}")
+                        cloudinary_destroy(public_id)
+                    except Exception as e:
+                        print(f"Error deleting slider image from Cloudinary: {e}")
+                    slider.delete()
+
+            # Upload new slider files to Cloudinary
+            for file in slider_gallery_files:
+                try:
+                    print(f"Uploading to Cloudinary: {file.name}")
+                    instance.gallery.create(image=file)
+                except Exception as e:
+                    print(f"Error uploading slider image to Cloudinary: {e}")
+
+            return instance
+        except Exception as e:
+            print("Update error:", str(e))
+            raise serializers.ValidationError({"detail": str(e)})
 
     class Meta:
         model = Resume
         fields = (
-            "user_id",
             "name",
             "title",
             "bio",

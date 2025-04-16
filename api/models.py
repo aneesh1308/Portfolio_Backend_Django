@@ -36,6 +36,7 @@ class Resume(models.Model):
     profile_image = models.ImageField(upload_to='profile_images/', blank=True, null=True)
 
     def save(self, *args, **kwargs):
+        print(f"Storage backend: {self.profile_image.storage.__class__.__name__}")
         if self.pk:
             try:
                 old_resume = Resume.objects.get(pk=self.pk)
@@ -143,7 +144,7 @@ class SliderGallery(models.Model):
     resume = models.ForeignKey(
         Resume, on_delete=models.CASCADE, related_name="gallery"
     )
-    image = models.ImageField(upload_to="resume_gallery/")
+    image = models.ImageField(upload_to="resume_gallery/", max_length=500)
     # caption = models.CharField(max_length=255, blank=True, null=True)  # Optional caption
 
     def __str__(self):

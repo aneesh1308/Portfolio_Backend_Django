@@ -16,6 +16,7 @@ from decouple import config # type: ignore
 import dj_database_url # type: ignore
 import os
 
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -27,7 +28,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = config('DJANGO_SECRETE_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.environ.get("DEBUG", "False").lower() == "true"
+DEBUG = config("DEBUG", "False").lower() == "true"
+print(DEBUG)
 
 ALLOWED_HOSTS = ["*"]
 
@@ -54,11 +56,11 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    "cloudinary_storage",
+    "cloudinary",
     "api",
     "rest_framework",
     "corsheaders",
-    "cloudinary", 
-    "cloudinary_storage"
 ]
 
 MIDDLEWARE = [
@@ -106,15 +108,15 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 
 DATABASES = {}
 
-if DEBUG:
-    DATABASES['default'] = {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
-else:
+# if DEBUG:
+#     DATABASES['default'] = {
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         'NAME': BASE_DIR / 'db.sqlite3',
+#     }
+# else:
     # DATABASES['default'] = dj_database_url.config(conn_max_age=600, ssl_require=True)
-    # DATABASES['default'] = dj_database_url.config(default=config('DATABASE_URL'))
-    DATABASES['default'] = dj_database_url.parse(os.environ.get('DATABASE_URL', ''))
+DATABASES['default'] = dj_database_url.config(default=config('DATABASE_URL'))
+    # DATABASES['default'] = dj_database_url.parse(os.environ.get('DATABASE_URL', ''))
 
 
 
@@ -153,19 +155,34 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
-# STATIC_URL = 'static/'
+STATIC_URL = 'static/'
 
 CLOUDINARY_STORAGE = {
-    'CLOUD_NAME': config('CLOUDINARY_CLOUD_NAME'),
-    'API_KEY': config('CLOUDINARY_API_KEY'),
-    'API_SECRET': config('CLOUDINARY_API_SECRET'),
+        'CLOUD_NAME': config('CLOUDINARY_CLOUD_NAME'),
+        'API_KEY': config('CLOUDINARY_API_KEY'),
+        'API_SECRET': config('CLOUDINARY_API_SECRET'),
+}
+print(CLOUDINARY_STORAGE,config('CLOUDINARY_CLOUD_NAME'),config('CLOUDINARY_API_KEY'))
+# MEDIA_URL = "/media/"
+STORAGES = {
+    'default': {
+        'BACKEND': 'cloudinary_storage.storage.MediaCloudinaryStorage',
+    },
+    'staticfiles': {
+        'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage',
+    }
 }
 
 
-MEDIA_URL = "/media/"
-DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
-# MEDIA_ROOT = os.path.join(BASE_DIR, "public/uploads")
+# if DEBUG:
+#     print("INTO LOCAL")
+#     MEDIA_ROOT = BASE_DIR / 'media' 
+# else:
+#     print("INTO CLOUDINARY")
+#     DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 
+# from django.core.files.storage import default_storage
+# print("Storage backend:", default_storage.__class__.__name__)
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
