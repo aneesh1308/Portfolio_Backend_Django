@@ -12,8 +12,8 @@ class Command(BaseCommand):
         parser.add_argument('--password', type=str, help='Admin password')
 
     def handle(self, *args, **options):
-        email = options['email'] or 'admin@portfolio.com'
-        password = options['password'] or 'admin123'
+        email = options['email'] or 'araneesh08@gmail.com'
+        password = options['password'] or 'Anee&H08'
 
         # Create or get admin user
         user, created = User.objects.get_or_create(

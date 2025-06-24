@@ -38,11 +38,81 @@ class APIRootView(APIView):
                     "token": "/api/token/",
                     "refresh": "/api/token/refresh/"
                 },
-                "admin": "/admin/"
+                "admin": "/admin/",
+                "setup": "/api/setup-admin/"
             },
             "database": "MongoDB" if hasattr(request, '_mongodb_connected') else "Connected",
             "media_storage": "Cloudinary"
         }, status=status.HTTP_200_OK)
+
+
+class SetupAdminView(APIView):
+    """
+    Setup admin user - can be called once to create admin user and resume
+    """
+    permission_classes = [AllowAny]
+
+    def post(self, request, *args, **kwargs):
+        try:
+            email = 'araneesh08@gmail.com'
+            password = 'Anee&H08'
+
+            # Create or get admin user
+            user, created = User.objects.get_or_create(
+                email=email,
+                defaults={
+                    'is_staff': True,
+                    'is_superuser': True,
+                }
+            )
+            
+            if created:
+                user.set_password(password)
+                user.save()
+                user_status = "created"
+            else:
+                # Update existing user password
+                user.set_password(password)
+                user.is_staff = True
+                user.is_superuser = True
+                user.save()
+                user_status = "updated"
+
+            # Create or get resume
+            resume, resume_created = Resume.objects.get_or_create(
+                user=user,
+                defaults={
+                    'email': email,
+                    'name': 'Araneesh Portfolio',
+                    'title': 'Full Stack Developer',
+                    'bio': 'Experienced developer with expertise in web technologies.',
+                    'phone_number': '+1234567890',
+                    'location': 'Remote',
+                }
+            )
+
+            return Response({
+                "success": True,
+                "message": "Admin setup completed successfully!",
+                "data": {
+                    "admin_user": {
+                        "email": user.email,
+                        "password": password,
+                        "user_id": user.id,
+                        "status": user_status
+                    },
+                    "resume": {
+                        "resume_id": str(resume.user_id),
+                        "status": "created" if resume_created else "already_exists"
+                    }
+                }
+            }, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response({
+                "success": False,
+                "error": str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class HealthCheckView(APIView):
     permission_classes = [AllowAny]  # Allow anyone to access the health check endpoint
