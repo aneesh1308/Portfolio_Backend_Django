@@ -107,8 +107,6 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
-DATABASES = {}
-
 # MongoDB Configuration with MongoEngine
 USE_MONGODB = config('USE_MONGODB', 'false').lower() == 'true'
 
@@ -123,18 +121,35 @@ if USE_MONGODB:
         authentication_source=config('MONGODB_AUTH_SOURCE', 'admin'),
     )
     print("✅ MongoDB connection configured")
-    # Still need a default database for Django's built-in apps
-    DATABASES['default'] = {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
+    
+    # For serverless environments, we need a simple database configuration
+    # Use PostgreSQL if available, otherwise in-memory SQLite
+    database_url = config('DATABASE_URL', None)
+    if database_url:
+        DATABASES = {
+            'default': dj_database_url.config(default=database_url)
+        }
+    else:
+        # For Vercel/serverless - use in-memory SQLite
+        DATABASES = {
+            'default': {
+                'ENGINE': 'django.db.backends.sqlite3',
+                'NAME': ':memory:',
+                'OPTIONS': {
+                    'timeout': 20,
+                },
+            }
+        }
+    print(f"✅ Django database configured: {DATABASES['default']['ENGINE']}")
 else:
     # PostgreSQL Configuration (default)
-    # Database configuration for production
-    if not USE_MONGODB:
-        # Use PostgreSQL/configured database when MongoDB is disabled
-        DATABASES['default'] = dj_database_url.config(default=config('DATABASE_URL'))
-    # For MongoDB, still need SQLite for Django's built-in apps
+    DATABASES = {
+        'default': dj_database_url.config(
+            default=config('DATABASE_URL', 'sqlite:///db.sqlite3'),
+            conn_max_age=600,
+            conn_health_checks=True,
+        )
+    }
 
 
 

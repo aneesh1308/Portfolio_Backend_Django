@@ -58,6 +58,13 @@ class SetupAdminView(APIView):
             email = 'araneesh08@gmail.com'
             password = 'Anee&H08'
 
+            # Check database connection
+            from django.db import connection
+            db_info = {
+                "engine": connection.settings_dict.get('ENGINE', 'Unknown'),
+                "name": connection.settings_dict.get('NAME', 'Unknown')
+            }
+
             # Clear existing data for this email
             try:
                 existing_user = User.objects.get(email=email)
@@ -68,6 +75,13 @@ class SetupAdminView(APIView):
                 print("Cleared existing admin user and data")
             except User.DoesNotExist:
                 pass
+            except Exception as db_error:
+                return Response({
+                    "success": False,
+                    "error": f"Database error: {str(db_error)}",
+                    "database_info": db_info,
+                    "suggestion": "Please add DATABASE_URL environment variable with PostgreSQL connection string"
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
             # Create fresh admin user
             user = User.objects.create_user(
@@ -116,7 +130,9 @@ class SetupAdminView(APIView):
                     },
                     "database_info": {
                         "total_users": User.objects.count(),
-                        "total_resumes": Resume.objects.count()
+                        "total_resumes": Resume.objects.count(),
+                        "database_engine": db_info["engine"],
+                        "database_name": db_info["name"]
                     }
                 }
             }, status=status.HTTP_200_OK)
@@ -126,7 +142,8 @@ class SetupAdminView(APIView):
             return Response({
                 "success": False,
                 "error": str(e),
-                "traceback": traceback.format_exc()
+                "traceback": traceback.format_exc(),
+                "database_info": db_info if 'db_info' in locals() else "Unknown"
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 

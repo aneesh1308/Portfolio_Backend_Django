@@ -5,10 +5,10 @@
 ### Django Core Settings
 ```
 DEBUG=false
-DJANGO_SECRETE_KEY=your-super-secret-django-key-here-min-50-characters-long-12345
+DJANGO_SECRETE_KEY=django-insecure-super-secret-key-for-production-use-at-least-50-characters-long-12345-abcdef
 ```
 
-### MongoDB Configuration (Recommended)
+### Database Configuration
 ```
 USE_MONGODB=true
 MONGODB_URI=mongodb+srv://araneesh08:Anee%26H08@cluster0.9xqcy0k.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0
@@ -16,6 +16,7 @@ MONGODB_NAME=portfolio_db
 MONGODB_USERNAME=araneesh08
 MONGODB_PASSWORD=Anee&H08
 MONGODB_AUTH_SOURCE=admin
+DATABASE_URL=postgresql://neondb_owner:npg_LT5dF7ZAQN2B@ep-aged-fire-a1u9s76t.ap-southeast-1.aws.neon.tech/neondb?sslmode=require
 ```
 
 ### Cloudinary Settings (Media Storage)
