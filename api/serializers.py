@@ -229,6 +229,9 @@ class ResumeSerializer(serializers.ModelSerializer):
         fields = (
             "name",
             "title",
+            'email', 
+            'phone_number', 
+            'location',
             "bio",
             "profile_image",
             "experiences",

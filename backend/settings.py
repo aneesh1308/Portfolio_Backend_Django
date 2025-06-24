@@ -58,6 +58,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     "cloudinary_storage",
     "cloudinary",
+    "mongoengine",
     "api",
     "rest_framework",
     "corsheaders",
@@ -108,15 +109,27 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 
 DATABASES = {}
 
-# if DEBUG:
-#     DATABASES['default'] = {
-#         'ENGINE': 'django.db.backends.sqlite3',
-#         'NAME': BASE_DIR / 'db.sqlite3',
-#     }
-# else:
-    # DATABASES['default'] = dj_database_url.config(conn_max_age=600, ssl_require=True)
-DATABASES['default'] = dj_database_url.config(default=config('DATABASE_URL'))
-    # DATABASES['default'] = dj_database_url.parse(os.environ.get('DATABASE_URL', ''))
+# MongoDB Configuration with MongoEngine
+USE_MONGODB = config('USE_MONGODB', 'false').lower() == 'true'
+
+if USE_MONGODB:
+    import mongoengine
+    # MongoEngine connection
+    mongoengine.connect(
+        db=config('MONGODB_NAME', 'portfolio_db'),
+        host=config('MONGODB_URI', 'mongodb://localhost:27017'),
+        username=config('MONGODB_USERNAME', None),
+        password=config('MONGODB_PASSWORD', None),
+        authentication_source=config('MONGODB_AUTH_SOURCE', 'admin'),
+    )
+    # Still need a default database for Django's built-in apps
+    DATABASES['default'] = {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
+    }
+else:
+    # PostgreSQL Configuration (default)
+    DATABASES['default'] = dj_database_url.config(default=config('DATABASE_URL', 'sqlite:///db.sqlite3'))
 
 
 
@@ -156,6 +169,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles_build' / 'static'
 
 CLOUDINARY_STORAGE = {
         'CLOUD_NAME': config('CLOUDINARY_CLOUD_NAME'),

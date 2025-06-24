@@ -30,6 +30,8 @@ class Resume(models.Model):
         primary_key=True  # Ensures it uses CustomUser's ID as the primary key
     )
     email = models.EmailField(_("email address"))
+    phone_number = models.CharField(max_length=20)
+    location = models.CharField(max_length=100)
     name = models.CharField(max_length=255)
     title = models.CharField(max_length=255)
     bio = models.TextField()

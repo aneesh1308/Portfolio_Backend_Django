@@ -22,3 +22,6 @@ six==1.17.0
 sqlparse==0.5.3
 typing_extensions==4.13.1
 urllib3==2.4.0
+mongoengine==0.29.1
+pymongo==4.13.2
+dnspython==2.7.0
