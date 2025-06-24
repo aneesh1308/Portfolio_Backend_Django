@@ -1,10 +1,11 @@
 from django.conf import settings
 from django.conf.urls.static import static
 from django.urls import path
-from .views import ResumeListCreateView, ResumeDetailView, BlogListCreateView, BlogDetailView, BlogByCategoryView, BlogPostListView, HealthCheckView
+from .views import ResumeListCreateView, ResumeDetailView, BlogListCreateView, BlogDetailView, BlogByCategoryView, BlogPostListView, HealthCheckView, APIRootView
 from uuid import UUID
 
 urlpatterns = [
+    path('', APIRootView.as_view(), name='api-root'),  # Root API endpoint
     path('health/', HealthCheckView.as_view(), name='health_check'),
     path('resumes/', ResumeListCreateView.as_view(), name='resume-list-create'),
     path('resumes/<uuid:pk>/', ResumeDetailView.as_view(), name='resume-detail'),

@@ -15,6 +15,35 @@ from .serializers import (
 
 User = get_user_model()
 
+class APIRootView(APIView):
+    """
+    API Root endpoint - provides information about available endpoints
+    """
+    permission_classes = [AllowAny]
+
+    def get(self, request, *args, **kwargs):
+        return Response({
+            "message": "Welcome to Portfolio Backend API",
+            "version": "1.0.0",
+            "status": "online",
+            "endpoints": {
+                "health": "/api/health/",
+                "resumes": "/api/resumes/",
+                "resume_detail": "/api/resumes/{id}/",
+                "blogs": "/api/blogs/",
+                "blog_detail": "/api/blog-post/{id}/",
+                "blog_posts": "/api/blog-posts/",
+                "auth": {
+                    "register": "/api/user/register/",
+                    "token": "/api/token/",
+                    "refresh": "/api/token/refresh/"
+                },
+                "admin": "/admin/"
+            },
+            "database": "MongoDB" if hasattr(request, '_mongodb_connected') else "Connected",
+            "media_storage": "Cloudinary"
+        }, status=status.HTTP_200_OK)
+
 class HealthCheckView(APIView):
     permission_classes = [AllowAny]  # Allow anyone to access the health check endpoint
 
