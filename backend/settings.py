@@ -122,6 +122,7 @@ if USE_MONGODB:
         password=config('MONGODB_PASSWORD', None),
         authentication_source=config('MONGODB_AUTH_SOURCE', 'admin'),
     )
+    print("✅ MongoDB connection configured")
     # Still need a default database for Django's built-in apps
     DATABASES['default'] = {
         'ENGINE': 'django.db.backends.sqlite3',
@@ -130,7 +131,7 @@ if USE_MONGODB:
 else:
     # PostgreSQL Configuration (default)
     # Database configuration with fallback
-    if DEBUG and config('DATABASE_URL', default='').startswith('sqlite'):
+    if DEBUG and config('FORCE_SQLITE', 'false').lower() == 'true':
         # Use SQLite for local development/testing when explicitly set
         DATABASES['default'] = {
             'ENGINE': 'django.db.backends.sqlite3',
