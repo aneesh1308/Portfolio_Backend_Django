@@ -11,10 +11,10 @@ DJANGO_SECRETE_KEY=your-super-secret-django-key-here-min-50-characters-long-1234
 ### MongoDB Configuration (Recommended)
 ```
 USE_MONGODB=true
-MONGODB_URI=mongodb+srv://araneesh08:YOUR_PASSWORD_HERE@cluster0.9xqcy0k.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0
+MONGODB_URI=mongodb+srv://araneesh08:Anee%26H08@cluster0.9xqcy0k.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0
 MONGODB_NAME=portfolio_db
 MONGODB_USERNAME=araneesh08
-MONGODB_PASSWORD=YOUR_ACTUAL_MONGODB_PASSWORD
+MONGODB_PASSWORD=Anee&H08
 MONGODB_AUTH_SOURCE=admin
 ```
 

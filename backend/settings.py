@@ -130,16 +130,11 @@ if USE_MONGODB:
     }
 else:
     # PostgreSQL Configuration (default)
-    # Database configuration with fallback
-    if DEBUG and config('FORCE_SQLITE', 'false').lower() == 'true':
-        # Use SQLite for local development/testing when explicitly set
-        DATABASES['default'] = {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
-        }
-    else:
-        # Use PostgreSQL/configured database for production
+    # Database configuration for production
+    if not USE_MONGODB:
+        # Use PostgreSQL/configured database when MongoDB is disabled
         DATABASES['default'] = dj_database_url.config(default=config('DATABASE_URL'))
+    # For MongoDB, still need SQLite for Django's built-in apps
 
 
 
