@@ -129,7 +129,16 @@ if USE_MONGODB:
     }
 else:
     # PostgreSQL Configuration (default)
-    DATABASES['default'] = dj_database_url.config(default=config('DATABASE_URL', 'sqlite:///db.sqlite3'))
+    # Database configuration with fallback
+    if DEBUG and config('DATABASE_URL', default='').startswith('sqlite'):
+        # Use SQLite for local development/testing when explicitly set
+        DATABASES['default'] = {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    else:
+        # Use PostgreSQL/configured database for production
+        DATABASES['default'] = dj_database_url.config(default=config('DATABASE_URL'))
 
 
 
