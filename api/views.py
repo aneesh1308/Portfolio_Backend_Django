@@ -39,7 +39,8 @@ class APIRootView(APIView):
                     "refresh": "/api/token/refresh/"
                 },
                 "admin": "/admin/",
-                "setup": "/api/setup-admin/"
+                "setup": "/api/setup-admin/",
+                "clear_database": "/api/clear-database/"
             },
             "database": "MongoDB" if hasattr(request, '_mongodb_connected') else "Connected",
             "media_storage": "Cloudinary"
@@ -48,7 +49,7 @@ class APIRootView(APIView):
 
 class SetupAdminView(APIView):
     """
-    Setup admin user - can be called once to create admin user and resume
+    Setup admin user - clears existing data and creates fresh admin user and resume
     """
     permission_classes = [AllowAny]
 
@@ -57,61 +58,114 @@ class SetupAdminView(APIView):
             email = 'araneesh08@gmail.com'
             password = 'Anee&H08'
 
-            # Create or get admin user
-            user, created = User.objects.get_or_create(
-                email=email,
-                defaults={
-                    'is_staff': True,
-                    'is_superuser': True,
-                }
-            )
-            
-            if created:
-                user.set_password(password)
-                user.save()
-                user_status = "created"
-            else:
-                # Update existing user password
-                user.set_password(password)
-                user.is_staff = True
-                user.is_superuser = True
-                user.save()
-                user_status = "updated"
+            # Clear existing data for this email
+            try:
+                existing_user = User.objects.get(email=email)
+                # Delete associated resumes
+                Resume.objects.filter(user=existing_user).delete()
+                # Delete user
+                existing_user.delete()
+                print("Cleared existing admin user and data")
+            except User.DoesNotExist:
+                pass
 
-            # Create or get resume
-            resume, resume_created = Resume.objects.get_or_create(
-                user=user,
-                defaults={
-                    'email': email,
-                    'name': 'Araneesh Portfolio',
-                    'title': 'Full Stack Developer',
-                    'bio': 'Experienced developer with expertise in web technologies.',
-                    'phone_number': '+1234567890',
-                    'location': 'Remote',
-                }
+            # Create fresh admin user
+            user = User.objects.create_user(
+                email=email,
+                password=password
             )
+            user.is_staff = True
+            user.is_superuser = True
+            user.is_active = True
+            user.save()
+
+            # Create fresh resume
+            resume = Resume.objects.create(
+                user=user,
+                email=email,
+                name='Araneesh Portfolio',
+                title='Full Stack Developer',
+                bio='Experienced developer with expertise in web technologies.',
+                phone_number='+1234567890',
+                location='Remote'
+            )
+
+            # Test authentication
+            from django.contrib.auth import authenticate
+            auth_user = authenticate(email=email, password=password)
+            auth_status = "SUCCESS" if auth_user else "FAILED"
 
             return Response({
                 "success": True,
-                "message": "Admin setup completed successfully!",
+                "message": "Admin setup completed successfully! Fresh data created.",
                 "data": {
                     "admin_user": {
                         "email": user.email,
                         "password": password,
-                        "user_id": user.id,
-                        "status": user_status
+                        "user_id": str(user.id),
+                        "is_staff": user.is_staff,
+                        "is_superuser": user.is_superuser,
+                        "is_active": user.is_active,
+                        "auth_test": auth_status
                     },
                     "resume": {
                         "resume_id": str(resume.user_id),
-                        "status": "created" if resume_created else "already_exists"
+                        "name": resume.name,
+                        "title": resume.title,
+                        "email": resume.email
+                    },
+                    "database_info": {
+                        "total_users": User.objects.count(),
+                        "total_resumes": Resume.objects.count()
                     }
                 }
             }, status=status.HTTP_200_OK)
 
         except Exception as e:
+            import traceback
             return Response({
                 "success": False,
-                "error": str(e)
+                "error": str(e),
+                "traceback": traceback.format_exc()
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class ClearDatabaseView(APIView):
+    """
+    Clear all data from database - use with caution!
+    """
+    permission_classes = [AllowAny]
+
+    def post(self, request, *args, **kwargs):
+        try:
+            # Clear all data
+            from .models import Blog
+            
+            blog_count = Blog.objects.count()
+            resume_count = Resume.objects.count()
+            user_count = User.objects.count()
+            
+            # Delete all records
+            Blog.objects.all().delete()
+            Resume.objects.all().delete()
+            User.objects.all().delete()
+
+            return Response({
+                "success": True,
+                "message": "Database cleared successfully!",
+                "deleted": {
+                    "blogs": blog_count,
+                    "resumes": resume_count,
+                    "users": user_count
+                }
+            }, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            import traceback
+            return Response({
+                "success": False,
+                "error": str(e),
+                "traceback": traceback.format_exc()
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class HealthCheckView(APIView):
